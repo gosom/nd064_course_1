@@ -14,4 +14,4 @@ COPY ./techtrends .
 ENV PATH=/root/.local:$PATH
 
 EXPOSE 3111/tcp
-CMD [ "python", "./app.py" ]
+CMD [ "./docker-entrypoint.sh"]

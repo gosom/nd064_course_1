@@ -1,8 +1,12 @@
+import logging
 import threading
 import sqlite3
+import sys
 
 from flask import Flask, jsonify, json, render_template, request, url_for, redirect, flash
 from werkzeug.exceptions import abort
+
+logger = logging.getLogger("app")
 
 class AtomicCounter():
 
@@ -54,13 +58,16 @@ def index():
 def post(post_id):
     post = get_post(post_id)
     if post is None:
-      return render_template('404.html'), 404
+        logger.debug(f'Article with id {post_id} does not exist')
+        return render_template('404.html'), 404
     else:
-      return render_template('post.html', post=post)
+        logger.debug(f'Article "{post[2]}" retrieved!')
+        return render_template('post.html', post=post)
 
 # Define the About Us page
 @app.route('/about')
 def about():
+    logger.debug('"About Us" page is retrieved')
     return render_template('about.html')
 
 # Define the post creation functionality
@@ -79,6 +86,8 @@ def create():
             connection.commit()
             connection.close()
 
+            logger.debug(f'Article "{title}" created!')
+
             return redirect(url_for('index'))
 
     return render_template('create.html')
@@ -96,7 +105,23 @@ def metrics():
     return {"db_connection_count": connection_counter.value,
             "post_count": post_count[0]}
 
+def setup_logging():
+    formatter = logging.Formatter('%(asctime)s, %(message)s', '%d/%m/%Y, %H:%M:%S')
+    stderr = logging.StreamHandler(sys.stderr)
+    stdout = logging.StreamHandler(sys.stdout)
+    handlers = [stderr, stdout]
+    for ch in handlers:
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+    logger.setLevel(logging.DEBUG)
+    logger.propagate = False
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        handlers=[logging.StreamHandler(sys.stderr), logging.StreamHandler(sys.stdout)]
+    )
 
 # start the application on port 3111
 if __name__ == "__main__":
+   setup_logging()
    app.run(host='0.0.0.0', port='3111')
